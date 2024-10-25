@@ -6,9 +6,10 @@ import numpy as np
 import wandb
 from ortools_mtsp import my_solve_mtsp
 
-def deep_test(n_agent, n_nodes, name, device):
+def deep_test(n_agent, n_nodes, name, device, batch_size):
     for size in n_nodes:
         data     = torch.load('./testing_data/testing_data_' + str(size) + '_' + str(batch_size))
+        # print(data, data.shape)
         adj      = torch.ones([data.shape[0], data.shape[1], data.shape[1]])  # adjacent matrix fully connected
         rewards  = []
         # Set up model
@@ -28,13 +29,17 @@ def deep_test(n_agent, n_nodes, name, device):
         for i in range(batch_size):
             # to batch graph
             data_list        = [Data(x=data[i], edge_index=torch.nonzero(adj[i], as_tuple=False).t(), as_tuple=False) for i in range(data.shape[0])]
+            print("data_list", data_list)
+            # print("data_list_shape", data_list)
             batch_graph      = Batch.from_data_list(data_list=data_list).to(device)
             # get pi
             pi               = model(batch_graph, n_nodes=data.shape[1], n_batch=data.shape[0])
             # sample action and calculate log probabilities
             action, log_prob = action_sample(pi)
+            print("action", action)
+            print("log_prob", log_prob)
             # get reward for each batch
-            reward           = get_cost(action, data[i], n_agent)  # reward: tensor [batch, 1]
+            reward           = get_cost(action, np.array([data[i]]), n_agent)  # reward: tensor [batch, 1]
             rewards.append(reward)
             print('Max sub-tour length for instance', i, 'is', reward, 'Mean obj so far:', format(np.array(rewards).mean(), '.4f'))
         print('Size: {}, mean max length: {}'.format(size, np.array(rewards).mean()))
@@ -60,7 +65,7 @@ if __name__ == '__main__':
     dev = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     n_agent     = 5
-    n_nodes     = [400, 500, 600, 700, 800, 900, 1000]
+    n_nodes     = [10]
     batch_size  = 3
     time_limits = [60]
     seed        = 1
@@ -69,7 +74,7 @@ if __name__ == '__main__':
     # start a new wandb run to track this script
     wandb.init(
         # set the wandb project where this run will be logged
-        project =   "mtsp1",
+        project =   "mtsp",
 
         # track hyperparameters and run metadata
         config  =   {
@@ -82,7 +87,7 @@ if __name__ == '__main__':
     name  = 'iMTSP'
  
     if name in ['iMTSP', 'RL']:
-        deep_test(n_agent, n_nodes, name, dev)
+        deep_test(n_agent, n_nodes, name, dev, batch_size)
     elif name == 'ORTools':
         ORTools_test(n_agent, n_nodes, time_limits, batch_size)
     else:

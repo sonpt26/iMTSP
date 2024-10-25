@@ -23,17 +23,20 @@ def train(batch_size, no_nodes, policy_net, surrogate, lr_p, lr_s, no_agent, ite
 
     for itr in range(iterations):
         # prepare training data
-        data = torch.load('./training_data/training_data_'+str(no_nodes)+'_'+str(batch_size)+'_'+str(itr%10))  # [batch, nodes, fea], fea is 2D location
+        data = torch.load('./training_data/training_data_'+str(no_nodes)+'_'+str(batch_size)+'_'+str(itr%10))  # [batch, nodes, fea], fea is 2D location        
         adj = torch.ones([data.shape[0], data.shape[1], data.shape[1]])  # adjacent matrix fully connected
         data_list = [Data(x=data[i], edge_index=torch.nonzero(adj[i], as_tuple=False).t()) for i in range(data.shape[0])]
+        # print("data", data, data.shape, data_list)
         batch_graph = Batch.from_data_list(data_list=data_list).to(device)
 
         # get pi
         pi = policy_net(batch_graph, n_nodes=data.shape[1], n_batch=batch_size)
+        # print("pi", pi)        
         # sample action and calculate log probabilities
         action, log_prob = action_sample(pi)
         # get real cost for each batch
         cost = get_cost(action, data, no_agent)  # cost: tensor [batorch.cat([torch.reshape(p, [-1]) for p in pg_grads], 0)tch, 1]
+        # print("cost", cost)
         # estimate cost via the surrogate network
         cost_s = torch.squeeze(surrogate(log_prob))
         # compute loss, need to freeze surrogate's parameters, cost_s in the second term should be detached
@@ -83,12 +86,12 @@ if __name__ == '__main__':
     dev = 'cuda' if torch.cuda.is_available() else 'cpu'
     # torch.use_deterministic_algorithms(True)
 
-    n_agent = 5 
-    n_nodes = 100
-    batch_size = 512
+    n_agent = 5
+    n_nodes = 10
+    batch_size = 2
     lr_p = 1e-4 # change when resuming
     lr_s = 1e-3 # change when resuming
-    iteration = 2500 # change when resuming
+    iteration = 1000 # change when resuming
 
     seed = 86
     torch.manual_seed(seed)
@@ -106,10 +109,10 @@ if __name__ == '__main__':
         surrogate.load_state_dict(torch.load(path_s, map_location=torch.device(dev)))
         id = ''  # This should be the mission id in wandb
     else:
-        id = ''
+        id = 'tao'
 
     # Config your wandb
-    wandb.login(key='') # Login with wandb account key
+    wandb.login(key='999e1679ef19c8f45f3ee81215e4e150980f9b7e') # Login with wandb account key
     # start a new wandb run to track this script
     wandb.init(
         # set the wandb project where this run will be logged

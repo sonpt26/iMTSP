@@ -101,13 +101,17 @@ def get_log_prob(pi, action_int):
 def get_cost(action, data, n_agent):
     subtour_max_lengths = [0 for _ in range(data.shape[0])]
     data = data * 1000  # why?
-    depot = data[:, 0, :].tolist()
-    sub_tours = [[[] for _ in range(n_agent)] for _ in range(data.shape[0])]
+    depot = data[:, 0, :].tolist()    
+    sub_tours = [[[] for _ in range(n_agent)] for _ in range(data.shape[0])]    
     for i in range(data.shape[0]):
         for tour in sub_tours[i]:
             tour.append(depot[i])
         for n, m in zip(action.tolist()[i], data.tolist()[i][1:]):
             sub_tours[i][n].append(m)
+    print("data", data)
+    print("depot", depot)
+    print("sub_tours", sub_tours)
+    print("action", action)
 
     for k in range(data.shape[0]):
         for a in range(n_agent):
